@@ -7,3 +7,9 @@
 
 使用之前要source setup-tapif
 程序挂了就source relauch.sh
+
+
+contrib/ports/unix/
+* 1. udp_client 和 minimal 是 udp echo
+* 2. telnet 192.168.0.2 7 和 minimal 是 tcp echo
+* 3. kcp_client 和 kcpecho 是 kcp echo
