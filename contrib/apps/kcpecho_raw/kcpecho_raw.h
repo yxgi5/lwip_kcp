@@ -28,74 +28,12 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * This file is part of and a contribution to the lwIP TCP/IP stack.
- *
- * Credits go to Adam Dunkels (and the current maintainers) of this software.
- *
- * Stephan Linz rewrote this file to get a basic echo example.
- */
-
-/**
- * @file
- * UDP echo server example using raw API.
- *
- * Echos all bytes sent by connecting client,
- * and passively closes when client is done.
+ * This file is part of the lwIP TCP/IP stack.
  *
  */
+#ifndef LWIP_UDPECHO_RAW_H
+#define LWIP_UDPECHO_RAW_H
 
-#include "lwip/opt.h"
-#include "lwip/debug.h"
-#include "lwip/stats.h"
-#include "lwip/udp.h"
-#include "udpecho_raw.h"
+void kcpecho_raw_init(void);
 
-#if LWIP_UDP
-
-static struct udp_pcb *udpecho_raw_pcb;
-
-static void
-udpecho_raw_recv(void *arg, struct udp_pcb *upcb, struct pbuf *p,
-                 const ip_addr_t *addr, u16_t port)
-{
-  struct pbuf *pq;
-  u8_t pcnt=1;
-
-  LWIP_UNUSED_ARG(arg);
-  if (p != NULL) {
-    
-    pq=p;
-    while(pq->tot_len!=pq->len)
-    {
-      pq=pq->next;
-      pcnt+=1;
-    }
-    printf("packs = %d\r\n",pcnt);
-    pq=p;
-
-    /* send received packet back to sender */
-    udp_sendto(upcb, p, addr, port);
-    /* free the pbuf */
-    pbuf_free(p);
-  }
-}
-
-void
-udpecho_raw_init(void)
-{
-  udpecho_raw_pcb = udp_new_ip_type(IPADDR_TYPE_ANY);
-  if (udpecho_raw_pcb != NULL) {
-    err_t err;
-
-    err = udp_bind(udpecho_raw_pcb, IP_ANY_TYPE, 7);
-    if (err == ERR_OK) {
-      udp_recv(udpecho_raw_pcb, udpecho_raw_recv, NULL);
-    } else {
-      /* abort? output diagnostic? */
-    }
-  } else {
-    /* abort? output diagnostic? */
-  }
-}
-
-#endif /* LWIP_UDP */
+#endif /* LWIP_UDPECHO_RAW_H */

@@ -33,9 +33,9 @@
 #CC=clang
 CCDEP?=$(CC)
 
-CFLAGS=-g -Wall -DLWIP_DEBUG -pedantic -Werror \
+CFLAGS=-g -std=gnu99 -Wall -DLWIP_DEBUG -pedantic -Werror \
 	-Wparentheses -Wsequence-point -Wswitch-default \
-	-Wextra -Wundef -Wshadow -Wpointer-arith -Wcast-qual \
+	-Wextra -Wundef -Wpointer-arith \
 	-Wc++-compat -Wwrite-strings -Wold-style-definition -Wcast-align \
 	-Wmissing-prototypes -Wredundant-decls -Wnested-externs -Wno-address \
 	-Wunreachable-code -Wuninitialized
@@ -65,6 +65,7 @@ LWIPDIR=$(CONTRIBDIR)/../lwip/src
 
 CFLAGS+=-I. \
 	-I$(CONTRIBDIR) \
+    -I$(CONTRIBDIR)/apps/kcpecho_raw \
 	-I$(LWIPDIR)/include \
 	-I$(LWIPARCH)/include
 
@@ -89,5 +90,7 @@ APPOBJS=$(notdir $(APPFILES:.c=.o))
 $(APPLIB): $(APPOBJS)
 	$(AR) $(ARFLAGS) $(APPLIB) $?
 
+ikcp.o:
+	$(CC) -g -std=gnu99 -Wall -DLWIP_DEBUG -pedantic -c $<
 %.o:
 	$(CC) $(CFLAGS) -c $(<:.o=.c)

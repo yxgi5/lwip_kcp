@@ -48,11 +48,20 @@
 #include "lwip/debug.h"
 #include "lwip/stats.h"
 #include "lwip/udp.h"
-#include "udpecho_raw.h"
+#include "kcpecho_raw.h"
+#include "ikcp.h"
 
 #if LWIP_UDP
 
 static struct udp_pcb *udpecho_raw_pcb;
+
+u16_t dstPort;
+u32_t addr_v=0;
+ip_addr_t *dstAddr=((ip_addr_t *)&addr_v);
+ikcpcb *kcp1;
+
+
+int udp_output(const char *buf, int len, ikcpcb *kcp, void *user);
 
 static void
 udpecho_raw_recv(void *arg, struct udp_pcb *upcb, struct pbuf *p,
@@ -63,7 +72,7 @@ udpecho_raw_recv(void *arg, struct udp_pcb *upcb, struct pbuf *p,
 
   LWIP_UNUSED_ARG(arg);
   if (p != NULL) {
-    
+
     pq=p;
     while(pq->tot_len!=pq->len)
     {
@@ -71,29 +80,90 @@ udpecho_raw_recv(void *arg, struct udp_pcb *upcb, struct pbuf *p,
       pcnt+=1;
     }
     printf("packs = %d\r\n",pcnt);
+
     pq=p;
 
     /* send received packet back to sender */
-    udp_sendto(upcb, p, addr, port);
+    //udp_sendto(upcb, p, addr, port);
+
+    memcpy(dstAddr, addr, sizeof(ip_addr_t));
+    dstPort = port;
+    //printf("port = %d, dstAddr->addr=%d\n", dstPort, dstAddr->addr);
+
+    u8_t pcnt=1;
+    while(p->tot_len!=p->len)
+	{
+		p=p->next;
+		pcnt+=1;
+//		TRACE_ZZG("%d\r\n",pcnt+1);
+	}
+
+	u8_t buf[p->tot_len];
+	memset(buf, 0, sizeof(buf));
+	u16_t len_tmp=0;
+	{
+		for(u8_t i;i<pcnt;i++)
+		{
+			memcpy(buf,p->payload,p->len);
+			len_tmp+=p->len;
+			p=p->next;
+		}
+	}
+    udpecho_raw_pcb = upcb;
+    ikcp_input(kcp1, (const char *)buf, len_tmp);
+
     /* free the pbuf */
-    pbuf_free(p);
+    if(p!=NULL)
+    {
+       pbuf_free(p);
+    }
   }
 }
 
+int udp_output(const char *buf, int len, ikcpcb *kcp, void *user)
+{
+    kcp = kcp;
+    user = user;
+    struct pbuf *p;
+
+    //printf("len = %d, dstAddr->addr=%d\n", len, dstAddr->addr);
+    if(buf!=NULL)
+    {
+        p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_POOL);
+        if(p!=NULL)
+        {
+            pbuf_take(p, (char*)buf, len);
+	        udp_sendto(udpecho_raw_pcb, p, dstAddr, dstPort);
+            pbuf_free(p);
+        }
+    }
+
+	return 0;
+}
+
 void
-udpecho_raw_init(void)
+kcpecho_raw_init(void)
 {
   udpecho_raw_pcb = udp_new_ip_type(IPADDR_TYPE_ANY);
-  if (udpecho_raw_pcb != NULL) {
+  if (udpecho_raw_pcb != NULL) 
+  {
     err_t err;
 
-    err = udp_bind(udpecho_raw_pcb, IP_ANY_TYPE, 7);
-    if (err == ERR_OK) {
+    err = udp_bind(udpecho_raw_pcb, IP_ANY_TYPE, 8000);
+    if (err == ERR_OK) 
+    {
       udp_recv(udpecho_raw_pcb, udpecho_raw_recv, NULL);
-    } else {
+    } 
+    else 
+    {
       /* abort? output diagnostic? */
     }
-  } else {
+
+    kcp1 = ikcp_create(0x11223344, (void*)0);
+    kcp1->output = udp_output;
+  } 
+  else 
+  {
     /* abort? output diagnostic? */
   }
 }
